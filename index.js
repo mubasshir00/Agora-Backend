@@ -12,6 +12,7 @@ const express = require('express')
 const { RtcTokenBuilder, RtcRole, RtmTokenBuilder, RtmRole } = require('agora-access-token');
 
 const users = require("./routes/user")
+const connectionstateusers = require("./routes/connectionState")
 
 const dotenv = require('dotenv');
 dotenv.config();
@@ -126,6 +127,8 @@ app.use('/api/home',placesRoutes);
 // })
 
 app.use("/api/v1/users",users)
+
+app.use("/api/v1/connectionstate", connectionstateusers)
 
 app.listen(PORT,()=>{
     console.log(api);

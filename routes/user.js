@@ -10,7 +10,7 @@ router.post("/", (req, res) => {
     const newUser = req.body;
     console.log(newUser);
     res.send(newUser);
-
+    
     allUsers.push(newUser)
     saveUser(allUsers)
     
