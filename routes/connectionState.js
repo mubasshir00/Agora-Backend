@@ -10,25 +10,53 @@ const router = express.Router()
 router.post("/", (req, res) => {
     const allUsers = loadUsersState()
 
+    // console.log(allUsers);
+
     console.log('lll', req.body);
     const newUser = req.body;
-    console.log(newUser.currentState);
-    // setTimeout(()=>{
-    //     console.log('HIIIIIII');
-    // },4*1000)
+    console.log(newUser);
+    const newUserObject = {
+        "uid": newUser.uid,
+        "userState" : [
+            {
+                "currentState" : newUser.currentState,
+                "previousState": newUser.previousState,
+                "timeStamp": newUser.timeStamp
+            }
+        ]
+    }
+    const findExistingUser = allUsers.find((i)=>i.uid === newUser.uid)
+    // const tempAllUser = allUsers.filter((i)=>i.uid === newUser.uid)
+    // console.log('tempAllUser', tempAllUser);
+    if(!findExistingUser){
+        res.send(newUser);
+        allUsers.push(newUserObject)
+        saveUser(allUsers);
+    }
+    else {
+        // console.log('aaaaaa',newUserObject.userState[0]);
 
-    // function myFunc(arg) {
-    //     console.log(`arg was => ${arg}`);
-    // }
+        const tempAllUser = allUsers.filter((i) => i.uid === newUser.uid)
+        console.log('tempAllUser', tempAllUser);
 
-    // setTimeout(myFunc, 1500, 'funky');
+        const {currentState,previousState,timeStamp} = {...newUserObject.userState[0]};
+        console.log('newUserObject', newUserObject);
+        findExistingUser.userState.push({
+            "currentState": currentState,
+            "previousState": previousState,
+            "timeStamp": timeStamp
+        });
+        console.log('findExistingUser',findExistingUser);
+        
+        const newUsers = allUsers.findIndex((obj=>obj.uid === findExistingUser.uid))
 
-    // if (newUser.currentState === "RECONNECTING"){
-    //     reconnectingUser()
-    // }
-    res.send(newUser);
-    allUsers.push(newUser)
-    saveUser(allUsers);
+        allUsers[newUsers].userState = findExistingUser.userState
+        
+        console.log('newUsers',allUsers);
+        // allUsers.push(findExistingUser)
+        saveUser(allUsers)
+        // saveUser(findExistingUser)
+    }
     // scheduling()
 })
 
@@ -40,11 +68,12 @@ router.post("/", (req, res) => {
 //     console.log('Reconnecting', reconnectingUserArray);
 // }
 
-corn.schedule('* * * * *', () => {
+corn.schedule('1 * * * *', () => {
     const filterUsers = loadUsersState()
-    const user = []
-    user.push(filterUsers.filter((i) => i.currentState === "RECONNECTING"))
-    console.log(user);
+    // console.log('corn', filterUsers);
+    console.log('aaaaaaaaaaa');
+    const res = filterUsers.map((i)=>i.uid)
+    console.log('corn', res);
 });
 
 const saveUser = (user) => {

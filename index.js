@@ -1,6 +1,6 @@
 // http://localhost:8080/access_token?channelName=test&role=subscriber&uid=1234&expireTime=6500
 
-const bodyParser = require('body-parser')
+// const bodyParser = require('body-parser')
 const cors = require('cors')
 const placesRoutes = require('./routes/places-routes')
 const morgan = require('morgan')
@@ -19,7 +19,7 @@ dotenv.config();
 
 const PORT = 8080
 
-const api = process.env.API_URL
+// const api = process.env.API_URL
 
 const APP_ID = process.env.APP_ID;
 const APP_CERTIFICATE = process.env.APP_CERTIFICATE;
@@ -44,7 +44,7 @@ const nocache = (req,resp,next) =>{
 const generateRTCToken = (req,resp) =>{
     //set response header
     resp.header('Acess-Control-Allow-Origin', '*');
-    res.header("Access-Control-Allow-Headers", "X-Requested-With");
+    // resp.header("Access-Control-Allow-Headers", "X-Requested-With");
 
     //get channel name
     const channelName = req.query.channelName;
@@ -55,13 +55,13 @@ const generateRTCToken = (req,resp) =>{
     //get uid
     let uid = req.query.uid;
     if(!uid || uid == ''){
-        uid = Math.random()
+        uid = 0
     }
 
     //get role
     let role = RtcRole.SUBSCRIBER;
 
-    if(req.query.role == 'publisher'){
+    if(req.query.role === 'publisher'){
         role = RtcRole.PUBLISHER
     }
 
@@ -93,7 +93,11 @@ const generateRTCToken = (req,resp) =>{
     fs.writeFileSync('test.json', JSON.stringify(tokenStore))
 
     //return the token
-    return resp.json({'token':token,'uid':uid,'Channel Name':channelName})
+    return resp.json({
+        'uid': uid,
+        'token': token,
+        'channelName': channelName,
+        'expireTime': expireTime,})
 }
 
 //  let tokenStore =[
@@ -131,6 +135,6 @@ app.use("/api/v1/users",users)
 app.use("/api/v1/connectionstate", connectionstateusers)
 
 app.listen(PORT,()=>{
-    console.log(api);
+    // console.log(api);
     console.log(`Listening on port : ${PORT}`);
 })
