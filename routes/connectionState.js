@@ -68,12 +68,20 @@ router.post("/", (req, res) => {
 //     console.log('Reconnecting', reconnectingUserArray);
 // }
 
-corn.schedule('1 * * * *', () => {
+corn.schedule('*/5 * * * *', () => {
     const filterUsers = loadUsersState()
     // console.log('corn', filterUsers);
     console.log('aaaaaaaaaaa');
-    const res = filterUsers.map((i)=>i.uid)
-    console.log('corn', res);
+    // const res = filterUsers.map((i) => i.userState)
+    const res = filterUsers.filter((i) => i.userState[i.userState.length - 1].currentState === "RECONNECTING")
+
+    const newUsers = filterUsers.findIndex((obj => obj.uid === res[0].uid))
+
+    console.log(newUsers);
+    filterUsers[newUsers].userState[filterUsers[newUsers].userState.length-1].currentState = "USER DIED"
+
+    console.log('corn', filterUsers);
+    saveUser(filterUsers)
 });
 
 const saveUser = (user) => {

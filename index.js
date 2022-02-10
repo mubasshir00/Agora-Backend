@@ -1,9 +1,13 @@
 // http://localhost:8080/access_token?channelName=test&role=subscriber&uid=1234&expireTime=6500
 
 // const bodyParser = require('body-parser')
+const BroadcastingInfo = require('./routes/broadcastingdata')
+
 const cors = require('cors')
 const placesRoutes = require('./routes/places-routes')
 const morgan = require('morgan')
+
+const mongoose = require('mongoose')
 
 const fs = require('fs')
 
@@ -15,6 +19,9 @@ const users = require("./routes/user")
 const connectionstateusers = require("./routes/connectionState")
 
 const dotenv = require('dotenv');
+const res = require('express/lib/response')
+const { Channel } = require('./models/channel')
+const { User } = require('./models/users')
 dotenv.config();
 
 const PORT = 8080
@@ -33,6 +40,7 @@ const router = express.Router();
 app.use(morgan('tiny'));
 
 app.use(cors({origin:true,credentials:true}))
+app.options('*',cors())
 
 const nocache = (req,resp,next) =>{
     resp.header('Cache-Control', 'private, no-cache, no-store, must-revalidate');
@@ -47,27 +55,29 @@ const generateRTCToken = (req,resp) =>{
     // resp.header("Access-Control-Allow-Headers", "X-Requested-With");
 
     //get channel name
-    const channelName = req.query.channelName;
+    const channelName = req.body.channelName;
+
+    // console.log(channelName);
 
     if(!channelName){
         return resp.status(500).json({'error':'channel is required'})
     }
     //get uid
-    let uid = req.query.uid;
+    let uid = req.body.uid;
     if(!uid || uid == ''){
-        uid = 0
+        uid = Math.floor(Math.random() * 100)+Date.now()
     }
 
     //get role
     let role = RtcRole.SUBSCRIBER;
 
-    if(req.query.role === 'publisher'){
+    if(req.body.role === 'publisher'){
         role = RtcRole.PUBLISHER
     }
 
     //get the expiration time
-    let expireTime = req.query.expireTime;
-    if(!expireTime || expireTime == ''){
+    let expireTime = req.body.expireTime;
+    if(!expireTime || expireTime === ''){
         expireTime = 3600;
     } else {
         expireTime = parseInt(expireTime,10);
@@ -81,24 +91,59 @@ const generateRTCToken = (req,resp) =>{
     //build the token
     const token = RtcTokenBuilder.buildTokenWithUid(APP_ID,APP_CERTIFICATE,channelName,uid,role,privilegeExpireTime);
 
-    let tokenStore =[
-        {
-            'uid': uid,
-            'token': token,
-            'channelName': channelName,
-            'expireTime': expireTime,
-        }
-    ]
 
-    fs.writeFileSync('test.json', JSON.stringify(tokenStore))
+    const allToken = loadToken()
+
+    let tokenStore = new Channel(
+        {
+            uid: uid,
+            token: token,
+            channelName: channelName,
+            // role:role,
+            expireTime: expireTime,
+            createdTime: Date.now()
+        }
+    )
+
+    tokenStore.save().then((createdToken=>{
+        resp.status(201).json(createdToken)
+    })).catch((err)=>{
+        resp.status(500).json({
+            error:err,
+            sucess:false
+        })
+    })
+
+    allToken.push(tokenStore)
+
+    saveToken(allToken)
+   
 
     //return the token
     return resp.json({
         'uid': uid,
         'token': token,
         'channelName': channelName,
+        'role': role,
         'expireTime': expireTime,})
 }
+
+const saveToken = (tokenData) =>{
+    const data = JSON.stringify(tokenData)
+    fs.writeFileSync('token.json', data)
+}
+
+const loadToken = () =>{
+    try {
+        const buffer = fs.readFileSync('token.json')
+        const dataJSON = buffer.toString()
+        return JSON.parse(dataJSON)
+    } catch{
+    return []
+    }
+}
+
+// const usersCreate
 
 //  let tokenStore =[
 //      {
@@ -110,31 +155,51 @@ const generateRTCToken = (req,resp) =>{
 
 // fs.writeFileSync('test.json', JSON.stringify(tokenStore))
 
-app.get('/access_token',nocache,generateRTCToken);
+app.use("/access_token",generateRTCToken);
 
-app.use('/api/home',placesRoutes);
-
-// app.get('/api/v1/users',(req,res)=>{
-//     const user = {
-//         id:1,
-//         name:'ASA S'
-//     }
-//     res.send(user)
-// })
-
-// router.post(`/api/v1/users`,(req,res)=>{
-//     console.log('lll',req.body);
-//     const newUser = req.body;
-//     console.log(newUser);
-//     res.send(newUser);
-//     fs.writeFileSync('test1.json', JSON.stringify(newUser))
-// })
+app.use("/api/home",placesRoutes);
 
 app.use("/api/v1/users",users)
 
+
+//get all channel info
+// app.get("/channel",async (req,res)=>{
+//     const channelList = await Channel.find()
+
+//     if(!channelList){
+//         res.status(500).json({success:false})
+//     }
+
+//     res.send(channelList)
+// })
+app.use("/broadcasting", BroadcastingInfo)
+
+//get all user info
+// app.get("/users",async (req,res)=>{
+//     const userList = await User.find()
+//     if(!userList){
+//         res.status(500).json({ success: false })
+//     }
+//     res.send(userList)
+// })
+
 app.use("/api/v1/connectionstate", connectionstateusers)
+
+mongoose.connect(process.env.CONNECTION_STRING,{
+    useNewUrlParser: true,
+    dbName:'agora'
+},()=>{
+    console.log('Database connected');
+})
+// .then(()=>{
+//     console.log('DataBase connected');
+// })
+// .catch((err)=>{
+//     console.log(err);
+// })
 
 app.listen(PORT,()=>{
     // console.log(api);
+    // console.log(process.env.CONNECTION_STRING);
     console.log(`Listening on port : ${PORT}`);
 })
