@@ -2,6 +2,7 @@
 
 // const bodyParser = require('body-parser')
 const BroadcastingInfo = require('./routes/broadcastingdata')
+const Qnaroute = require('./routes/qna')
 
 const cors = require('cors')
 const placesRoutes = require('./routes/places-routes')
@@ -162,26 +163,9 @@ app.use("/api/home",placesRoutes);
 app.use("/api/v1/users",users)
 
 
-//get all channel info
-// app.get("/channel",async (req,res)=>{
-//     const channelList = await Channel.find()
-
-//     if(!channelList){
-//         res.status(500).json({success:false})
-//     }
-
-//     res.send(channelList)
-// })
 app.use("/broadcasting", BroadcastingInfo)
 
-//get all user info
-// app.get("/users",async (req,res)=>{
-//     const userList = await User.find()
-//     if(!userList){
-//         res.status(500).json({ success: false })
-//     }
-//     res.send(userList)
-// })
+app.use("/qna", Qnaroute)
 
 app.use("/api/v1/connectionstate", connectionstateusers)
 
@@ -191,12 +175,6 @@ mongoose.connect(process.env.CONNECTION_STRING,{
 },()=>{
     console.log('Database connected');
 })
-// .then(()=>{
-//     console.log('DataBase connected');
-// })
-// .catch((err)=>{
-//     console.log(err);
-// })
 
 app.listen(PORT,()=>{
     // console.log(api);
